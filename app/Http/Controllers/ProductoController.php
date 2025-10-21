@@ -4,92 +4,148 @@ namespace App\Http\Controllers;
 
 use App\Models\Producto;
 use Illuminate\Http\Request;
+use Exception; // Para manejo de errores
 
 class ProductoController extends Controller
 {
     /**
-     * Muestra la lista de productos (READ).
+     * Muestra la lista de productos.
+     * Si es AJAX, devuelve solo el contenido de la tabla/buscador.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $productos = Producto::paginate(10); // Pagina de 10 en 10
+        // Lógica de búsqueda (opcional, si la implementas)
+        // $buscar = $request->input('buscar');
+        // $productos = Producto::where('nombre', 'like', "%{$buscar}%")->paginate(10);
+        $productos = Producto::paginate(10);
+
+        if ($request->ajax()) {
+            // Devuelve la vista parcial que contiene la tabla y el buscador
+            return view('productos.components.indexContent', compact('productos'))->render();
+        }
+
+        // Carga inicial: Devuelve la vista principal que incluye el JS
         return view('productos.index', compact('productos'));
     }
 
     /**
-     * Muestra el formulario de creación (CREATE).
+     * Muestra el formulario de creación.
+     * Si es AJAX, devuelve solo el formulario.
      */
-    public function create()
+    public function create(Request $request)
     {
-        return view('productos.create');
+        if ($request->ajax()) {
+             // Devuelve la vista parcial del formulario de creación
+            return view('productos.create')->render();
+        }
+        // Si no es AJAX, redirige al índice (no debería pasar con este JS)
+        return redirect()->route('productos.index');
     }
 
     /**
-     * Guarda el nuevo producto en la base de datos (CREATE).
+     * Guarda el nuevo producto.
+     * Si es AJAX, devuelve JSON.
      */
     public function store(Request $request)
     {
-        // Validación
         $request->validate([
             'nombre' => 'required|string|max:255',
-            'codigo' => 'nullable|string|unique:productos,codigo', // Opcional, pero único si existe
+            'codigo' => 'nullable|string|unique:productos,codigo',
+            // Agrega aquí el resto de validaciones si son necesarias
         ]);
 
-        // Creación
-        Producto::create($request->all());
+        try {
+            Producto::create($request->all());
 
-        // Redirección
-        return redirect()->route('productos.index')
-        ->with('success', 'Producto registrado exitosamente.');
+            if ($request->ajax()) {
+                return response()->json(['message' => 'Producto registrado exitosamente.']);
+            }
+
+            return redirect()->route('productos.index')
+                            ->with('success', 'Producto registrado exitosamente.');
+
+        } catch (Exception $e) {
+            if ($request->ajax()) {
+                 // Devuelve un error JSON detallado
+                return response()->json([
+                    'message' => 'Error al registrar el producto.',
+                     'error' => $e->getMessage() // Opcional: enviar detalles del error
+                 ], 500); // Código de error del servidor
+            }
+             // Si no es AJAX, redirige atrás con el error
+            return back()->withErrors(['general' => 'Error al registrar el producto: ' . $e->getMessage()])->withInput();
+        }
     }
 
     /**
-     * Display the specified resource.
-     * (No lo usaremos por ahora)
+     * Muestra el formulario de edición.
+     * Si es AJAX, devuelve solo el formulario.
      */
-    public function show(Producto $producto)
+    public function edit(Request $request, Producto $producto)
     {
-        //
+        if ($request->ajax()) {
+             // Devuelve la vista parcial del formulario de edición
+            return view('productos.edit', compact('producto'))->render();
+        }
+        return redirect()->route('productos.index');
     }
 
     /**
-     * Muestra el formulario de edición (UPDATE).
-     */
-    public function edit(Producto $producto)
-    {
-        // Laravel automáticamente encuentra el producto por su ID
-        return view('productos.edit', compact('producto'));
-    }
-
-    /**
-     * Actualiza el producto en la base de datos (UPDATE).
+     * Actualiza el producto.
+     * Si es AJAX, devuelve JSON.
      */
     public function update(Request $request, Producto $producto)
     {
-        // Validación
         $request->validate([
             'nombre' => 'required|string|max:255',
-             // Validación de único, ignorando el ID actual
             'codigo' => 'nullable|string|unique:productos,codigo,' . $producto->id,
+            // Agrega validaciones restantes
         ]);
 
-        // Actualización
-        $producto->update($request->all());
+        try {
+            $producto->update($request->all());
 
-        // Redirección
-        return redirect()->route('productos.index')
-        ->with('success', 'Producto actualizado exitosamente.');
+            if ($request->ajax()) {
+                return response()->json(['message' => 'Producto actualizado exitosamente.']);
+            }
+
+            return redirect()->route('productos.index')
+            ->with('success', 'Producto actualizado exitosamente.');
+        } catch (Exception $e) {
+            if ($request->ajax()) {
+                return response()->json([
+                    'message' => 'Error al actualizar el producto.',
+                    'error' => $e->getMessage()
+                ], 500);
+            }
+            return back()->withErrors(['general' => 'Error al actualizar el producto: ' . $e->getMessage()])->withInput();
+        }
     }
 
     /**
-     * Elimina el producto de la base de datos (DELETE).
+     * Elimina el producto.
+     * Si es AJAX, devuelve JSON. (Adaptado para AJAX)
      */
-    public function destroy(Producto $producto)
-{
-    $producto->delete();
+    public function destroy(Request $request, Producto $producto)
+    {
+        try {
+             $producto->delete(); // Eliminación física (o soft delete si lo configuras en el modelo)
 
-    // Cambia el mensaje aquí para incluir el emoji manualmente
-    return redirect()->route('productos.index')
-    ->with('success', 'Producto eliminado exitosamente.');
-}
+            if ($request->ajax()) {
+                return response()->json(['message' => 'Producto eliminado exitosamente.']);
+            }
+
+            return redirect()->route('productos.index')
+            ->with('success', 'Producto eliminado exitosamente.');
+        } catch (Exception $e) {
+            if ($request->ajax()) {
+                return response()->json([
+                    'message' => 'Error al eliminar el producto.',
+                    'error' => $e->getMessage()
+                ], 500);
+            }
+            return redirect()->route('productos.index')
+            ->with('error', 'Error al eliminar el producto: ' . $e->getMessage());
+        }
+    }
 }
