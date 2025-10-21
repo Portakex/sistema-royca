@@ -310,19 +310,49 @@
             });
         });
 
+        let searchTimeout; // Variable para esperar a que el usuario termine de escribir
+        $(document).on('input', '#searchKeywordProducto', function() {
+            clearTimeout(searchTimeout); // Cancela el temporizador anterior si sigue escribiendo
+            const searchTerm = $(this).val(); // Obtiene el valor actual del input
+            const searchUrl = "{{ route('productos.index') }}"; // URL base de la lista
+            console.log("Search term changed:", searchTerm);
+            // Espera 500ms después de que deje de escribir para buscar
+            searchTimeout = setTimeout(() => {
+                console.log("Performing search for:", searchTerm);
+                // Construye la URL con el parámetro de búsqueda
+                const urlWithSearch = searchUrl + '?buscar=' + encodeURIComponent(searchTerm);
+                fetchAndSwap(urlWithSearch); // Llama a la función AJAX
+            }, 1000); // 1000 milisegundos = 1 segundo que se tomara para buscar
+        });
+
+        $(document).on('click','.pagination a', function(e) {
+            e.preventDefault(); // Previene la recarga de la página
+            let url = $(this).attr('href');
+            const currentSearchTerm = $('#searchKeywordProducto').val(); // Obtiene el término de búsqueda actual
+            if (url) {
+                console.log("Pagination link clicked:", url);
+            // Si hay un término de búsqueda, lo añade a la URL de paginación
+            if (currentSearchTerm) {
+            // Evita añadir ?buscar= si ya viene en la URL de paginación
+            if (!url.includes('buscar=')) {
+                url += (url.includes('?') ? '&' : '?') + 'buscar=' + encodeURIComponent(currentSearchTerm);
+                console.log("Appending search term to pagination URL:", url);
+                }
+            }
+            fetchAndSwap(url);
+            } else {
+                console.warn("Pagination link clicked but no href found.");
+            }
+        });
+
         // Manejo del historial del navegador
         window.addEventListener('popstate', function (event) {
             console.log("Popstate event:", event.state);
             if (event.state && event.state.urlPath) {
                 fetchAndSwap(location.pathname + location.search);
             } else if (!event.state && location.pathname.startsWith("{{ url('/productos') }}")) {
-                  // Si no hay estado pero estamos en la sección de productos,
-                  // probablemente el usuario usó F5 o llegó directo.
-                  // Recargar la página completa puede ser una opción segura aquí.
-                  // location.reload(); // Descomenta si es necesario
+                location.reload();
                 console.log("Popstate to initial page load state detected.");
-                  // O intentar cargar el index si es seguro
-                   // fetchAndSwap("{{ route('productos.index') }}");
             }
         });
 

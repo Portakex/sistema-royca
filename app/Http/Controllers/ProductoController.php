@@ -14,18 +14,23 @@ class ProductoController extends Controller
      */
     public function index(Request $request)
     {
-        // Lógica de búsqueda (opcional, si la implementas)
-        // $buscar = $request->input('buscar');
-        // $productos = Producto::where('nombre', 'like', "%{$buscar}%")->paginate(10);
-        $productos = Producto::paginate(10);
-
-        if ($request->ajax()) {
-            // Devuelve la vista parcial que contiene la tabla y el buscador
-            return view('productos.components.indexContent', compact('productos'))->render();
+        $buscar = $request->input('buscar');
+        $productos = null; // Inicializa la variable
+        if (!empty($buscar)) {
+            $query = Producto::query()
+                ->where(function ($q) use ($buscar) {
+                    $q->where('nombre', 'like', "%{$buscar}%")
+                    ->orWhere('codigo', 'like', "%{$buscar}%")
+                    ->orWhere('marca', 'like', "%{$buscar}%");
+                });
+            $productos = $query->paginate(10)->appends(['buscar' => $buscar]);
+        } else {
+            $productos = Producto::paginate(10);
         }
-
-        // Carga inicial: Devuelve la vista principal que incluye el JS
-        return view('productos.index', compact('productos'));
+        if ($request->ajax()) {
+            return view('productos.components.indexContent', compact('productos', 'buscar'))->render();
+        }
+        return view('productos.index', compact('productos', 'buscar'));
     }
 
     /**
