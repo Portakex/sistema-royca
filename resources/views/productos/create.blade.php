@@ -1,6 +1,3 @@
-{{-- /resources/views/productos/create.blade.php --}}
-{{-- NO @extends NADA --}}
-
 {{-- Título H1 (lo actualizará el JS) --}}
 <h1 id="view-title" class="d-none">Registrar Nuevo Producto</h1>
 

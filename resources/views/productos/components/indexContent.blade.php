@@ -1,6 +1,3 @@
-{{-- /resources/views/productos/components/indexContent.blade.php --}}
-{{-- NO extiende ningún layout --}}
-
 {{-- Título H1 (se actualizará con JS) --}}
 {{-- <h1 id="view-title">Maestro de Productos</h1> --}} {{-- Movido al index principal --}}
 

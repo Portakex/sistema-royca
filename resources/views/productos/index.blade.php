@@ -1,5 +1,3 @@
-{{-- /resources/views/productos/index.blade.php --}}
-
 {{-- Extiende la plantilla principal SÓLO aquí --}}
 @extends('adminlte::page')
 
